@@ -23,7 +23,7 @@ def get_spectrogram(audio):
     return spectrogram
 
 def scipy_spectrogram(audio, rate):
-    frequencies, times, spectrogram = signal.spectrogram(audio, rate)
+    frequencies, times, spectrogram = signal.stft(audio, rate)
     return spectrogram
 
 def create_spectrograms(file = "labels.json", num_files = 50):
@@ -41,7 +41,7 @@ def create_spectrograms(file = "labels.json", num_files = 50):
                 path = "./FSD50K.dev_audio/" + file + ".wav"
                 try:
                   rate, audio = wavfile.read(path)
-                  spectrogram = get_spectrogram(audio)
+                  spectrogram = scipy_spectrogram(audio)
                   if label_train_data.shape[0] == 0:
                     label_train_data = spectrogram
                   else:
@@ -53,7 +53,7 @@ def create_spectrograms(file = "labels.json", num_files = 50):
                 path = "./FSD50K.dev_audio/" + file + ".wav"
                 try:
                   rate, audio = wavfile.read(path)
-                  spectrogram = get_spectrogram(audio)
+                  spectrogram = scipy_spectrogram(audio)
                   if label_test_data.shape[0] == 0:
                     label_test_data = spectrogram
                   else:
@@ -62,8 +62,8 @@ def create_spectrograms(file = "labels.json", num_files = 50):
                   print("Error reading file: ", path)
                   continue
             print(label, label_train_data.shape)
-            np.save("./spectrogram_data/train/" + label + ".npy", label_train_data)
-            np.save("./spectrogram_data/test/" + label + ".npy", label_test_data)
+            np.save(f"./scipy_spectrogram_data/train{num_files}/" + label + ".npy", label_train_data)
+            np.save(f"./scipy_spectrogram_data/test{num_files}/" + label + ".npy", label_test_data)
             with open("spectrogram_per_class.txt", "a") as f:
                 f.write(label + "," + str(len(train)) + "," + str(len(test)) + "\n")
 
