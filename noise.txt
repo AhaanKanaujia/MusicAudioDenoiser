@@ -1,0 +1,14 @@
+Vehicle_horn_and_car_horn_and_honking
+Traffic_noise_and_roadway_noise
+Livestock_and_farm_animals_and_working_animals
+Bird_vocalization_and_bird_call_and_bird_song
+Crowd
+Clapping
+Applause
+Telephone
+Crumpling_and_crinkling
+Waves_and_surf
+Shatter
+Screaming
+Sneeze
+Cough
