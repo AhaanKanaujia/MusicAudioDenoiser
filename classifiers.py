@@ -1,3 +1,55 @@
+# some helper functions
+
+def multivar_gaussian_pdf(x: np.ndarray, mu: np.ndarray, sigma: np.ndarray) -> float:
+    """
+    Given the mean and covariance matrix of a multivariate normal distribution, compute the probability density of x.
+
+    Args:
+        x: the input point to compute the probability density of
+        mu: the mean of the multivariate normal distribution
+        sigma: the covariance matrix of the multivariate normal distribution
+    
+    Returns:
+        The probability density of x
+
+    Throws:
+        ValueError: if the dimensions of mu and sigma do not match
+        ValueError: if sigma is not positive definite
+    """
+    if mu.shape[0] != sigma.shape[0] or mu.shape[0] != sigma.shape[1]:
+        raise ValueError("Dimensions of mu and sigma do not match")
+    if mu.shape[0] != x.shape[0]:
+        raise ValueError("Dimensions of mu and x do not match")
+    if not np.all(np.linalg.eigvals(sigma) > 0):
+        print("Sigma is not positive definite... Using diagonal")
+        sigma = np.diag(np.diag(sigma))
+
+    d = x.shape[0]
+    # handle case when multiple points given as columns in x
+    if len(x.shape) > 1:
+        mu = mu.reshape(-1, 1)
+        return 1 / (np.sqrt((2*np.pi)**d * np.linalg.det(sigma)) + 1e-5) * np.exp(-0.5 * np.diag((x - mu).T @ np.linalg.inv(sigma) @ (x - mu)))
+    
+    return 1 / (np.sqrt((2*np.pi)**d * np.linalg.det(sigma)) + 1e-5) * np.exp(-0.5 * (x - mu).T @ np.linalg.inv(sigma) @ (x - mu))
+
+
+def fit_gaussian(D: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Given a set of data points D (d x n), fit a multivariate normal distribution to the data.
+
+    Args:
+        D: the data matrix. Each column is a data point.
+
+    Returns:
+        Mean and covariance matrix of the fitted distribution in a tuple.
+    """
+    mu = np.mean(D, axis=1)
+    sigma = np.cov(D).reshape(mu.shape[0], mu.shape[0])
+    return mu, sigma
+
+
+# the classifiers...
+
 class GaussianClassifier():
     """
     Gaussian classifier for n classes. Fits a multivariate normal distribution to each class in training data
