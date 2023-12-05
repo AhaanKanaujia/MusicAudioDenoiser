@@ -1,3 +1,9 @@
+import numpy as np
+import os
+import pickle as pk
+import json
+from tqdm import tqdm
+from sklearn.neighbors import KNeighborsClassifier
 # some helper functions
 
 def multivar_gaussian_pdf(x: np.ndarray, mu: np.ndarray, sigma: np.ndarray) -> float:
@@ -33,7 +39,7 @@ def multivar_gaussian_pdf(x: np.ndarray, mu: np.ndarray, sigma: np.ndarray) -> f
     return 1 / (np.sqrt((2*np.pi)**d * np.linalg.det(sigma)) + 1e-5) * np.exp(-0.5 * (x - mu).T @ np.linalg.inv(sigma) @ (x - mu))
 
 
-def fit_gaussian(D: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def fit_gaussian(D: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Given a set of data points D (d x n), fit a multivariate normal distribution to the data.
 
@@ -146,3 +152,139 @@ class PCAClassifier():
         """
         acc = np.mean(self.predict(data) == labels)
         return acc
+
+# def gaussian_quadratic_boundary(label_training_data):
+#   mu = np.mean(label_training_data, axis = 1)
+#   sigma = np.cov(label_training_data)
+
+#   inv_sigma = np.linalg.inv(sigma)
+
+#   W = -1/2 * inv_sigma
+#   w = inv_sigma @ mu
+#   b = -1/2 * (mu.T @ inv_sigma @ mu) - 1/2 * np.log(np.linalg.det(sigma))
+
+#   return W, w, b
+
+noise = set()
+with open("output/noise.txt", "r") as f:
+    for line in f:
+        noise.add(line.strip())
+
+music = set()
+with open("output/music.txt", "r") as f:
+    for line in f:
+        music.add(line.strip())
+
+classes = []
+noises = 0
+noise_dir = "./scipy_spectrogram_data/noise/train/"
+for file in os.listdir(noise_dir):
+    classes.append(file)
+    noises += 1
+music_dir = "./scipy_spectrogram_data/music/train/"
+music = 0
+for file in os.listdir(music_dir):
+    classes.append(file)
+    music += 1
+# print(classes, len(classes))
+
+mapping = {}
+for i in range(len(classes)):
+    mapping[classes[i]] = i
+# print(mapping)
+
+train = np.load("transformed_data_sklearn.npy")
+train = train.T
+# print(train.shape)
+
+label_shapes = np.load("subset_labels_shape.npy")
+mid = 0
+for i in range(noises):
+    mid += label_shapes[i]
+
+train_noise = train[:, :mid]
+train_music = train[:, mid:]
+
+labels = []
+for i in range(mid):
+    labels.append(0)
+for i in range(mid, train.shape[1]):
+    labels.append(1)
+
+labels = np.array(labels)
+
+# for i in range(len(label_shapes)):
+#     start = sum(label_shapes[:i])
+#     end = sum(label_shapes[:i+1])
+#     label = mapping[classes[i]]
+#     # print(start, end, label)
+#     for j in range(start, end):
+#         labels.append(label)
+
+train = np.concatenate((train_noise, train_music), axis = 1)
+labels = np.array(labels)
+classifier = KNeighborsClassifier(2)
+train = train.T
+classifier.fit(train, labels)
+pk.dump(classifier, open("knn_classifier.pkl", "wb"))
+
+# bootstrap_samples = 10000
+
+# for i in range(10):
+#     sample = np.random.choice(train_noise.shape[1], size = bootstrap_samples, replace = True)
+#     pred = classifier.predict(train_noise[:, sample].T)
+#     acc = np.mean(pred == 0)
+#     print("noise accuracy", acc)
+#     sample = np.random.choice(train_music.shape[1], size = bootstrap_samples, replace = True)
+#     pred = classifier.predict(train_music[:, sample].T)
+#     acc = np.mean(pred == 1)
+#     print("music accuracy", acc)
+
+# pca = pk.load(open("pca.pkl", "rb"))
+
+# classifiers = {}
+
+# classifier = PCAClassifier(len(classes))
+# classifier.fit(train, np.array(labels))
+
+# bootstrap_samples = 10000
+
+# for i in range(len(label_shapes)):
+#     start = sum(label_shapes[:i])
+#     end = sum(label_shapes[:i+1])
+#     label = mapping[classes[i]]
+#     subset = train[:, start:end].T
+#     print(start, end, subset.shape, label)
+#     accuracy = []
+#     sample = np.random.choice(subset.shape[1], size = bootstrap_samples, replace = False)
+#     pred = classifier.predict(subset[:, sample].T)
+#     acc = np.mean(pred == label)
+#     print(classes[i], np.mean(acc))
+
+# for i in range(100):
+#     x = train[:, i]
+#     label = labels[i]
+#     pred = classifier.predict(x)
+#     print(label, pred)
+
+# directory = "./scipy_spectrogram_data/noise/test/"
+# for file in os.listdir(directory):
+#     correct = str(file)
+#     test = np.load(directory + file)
+#     test = np.abs(test).T
+#     test = pca.transform(test)
+#     test = test.T
+
+#     labels = [mapping[correct]] * test.shape[1]
+#     labels = np.array(labels)
+
+#     accuracy = []
+
+#     for _ in tqdm(range(100)):
+#         sample = np.random.choice(test.shape[1], size = bootstrap_samples, replace = True)
+#         a = classifier.evaluate(test[:, sample], labels[sample])
+#         accuracy.append(a)
+
+#     print(file, np.mean(accuracy))
+
+# # print("Gaussian Classifier Accuracy: ", classifier.evaluate(train, np.array(labels)))
